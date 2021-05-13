@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+import network
 
 import dataset
 
@@ -25,6 +26,17 @@ if __name__ == "__main__":
     # Other parameters
     parser.add_argument('--batch_size', type = int, default = 1, help = 'test batch size, always 1')
     parser.add_argument('--load_name', type = str, default = 'deepfillNet_epoch4_batchsize4.pth', help = 'test model name')
+    # Network parameters
+    parser.add_argument('--in_channels', type = int, default = 4, help = 'input RGB image + 1 channel mask')
+    parser.add_argument('--out_channels', type = int, default = 3, help = 'output RGB image')
+    parser.add_argument('--latent_channels', type = int, default = 64, help = 'latent channels')
+    parser.add_argument('--pad_type', type = str, default = 'zero', help = 'the padding type')
+    parser.add_argument('--activation', type = str, default = 'lrelu', help = 'the activation type')
+    parser.add_argument('--norm', type = str, default = 'in', help = 'normalization type')
+    parser.add_argument('--init_type', type = str, default = 'xavier', help = 'the initialization type')
+    parser.add_argument('--init_gain', type = float, default = 0.02, help = 'the initialization gain')
+
+    
     opt = parser.parse_args()
     print(opt)
 
@@ -43,7 +55,9 @@ if __name__ == "__main__":
     #                 Testing
     # ----------------------------------------
 
-    model = torch.load(opt.load_name)
+    model = network.GatedGenerator(opt)
+    model.load_state_dict(torch.load(opt.load_name))
+    model = model.cuda()
 
     for batch_idx, (img, mask) in enumerate(dataloader):
 
@@ -69,10 +83,13 @@ if __name__ == "__main__":
         fusion_fake2 = fusion_fake2.detach().cpu().numpy().reshape(3, opt.imgsize, opt.imgsize).transpose(1, 2, 0)
         fusion_fake2 = (fusion_fake2 + 1) * 128
         fusion_fake2 = fusion_fake2.astype(np.uint8)
+        masked_img = masked_img.detach().cpu().numpy().reshape(3, opt.imgsize, opt.imgsize).transpose(1, 2, 0)
+        masked_img = (masked_img + 1) * 128
+        masked_img = masked_img.astype(np.uint8)
 
         # show
-        show_img = np.concatenate((img, fusion_fake1, fusion_fake2), axis = 1)
+        show_img = np.concatenate((img, masked_img, fusion_fake1, fusion_fake2), axis = 1)
         r, g, b = cv2.split(show_img)
         show_img = cv2.merge([b, g, r])
-        cv2.imshow('comparison.jpg', show_img)
-        cv2.imwrite('result_%d.jpg' % batch_idx, show_img)
+        # cv2.imshow('comparison.jpg', show_img)
+        cv2.imwrite('results/result_%d.jpg' % batch_idx, show_img)

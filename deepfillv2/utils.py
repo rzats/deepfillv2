@@ -16,7 +16,8 @@ def create_generator(opt):
     generator = network.GatedGenerator(opt)
     print('Generator is created!')
     if opt.load_name:
-        generator = load_dict(generator, opt.load_name)
+        # generator = load_dict(generator, opt.load_name)
+        generator.load_state_dict(torch.load(opt.load_name))
     else:
         # Init the networks
         network.weights_init(generator, init_type = opt.init_type, init_gain = opt.init_gain)
@@ -122,7 +123,7 @@ def save_sample_png(sample_folder, sample_name, img_list, name_list, pixel_max_c
         # Save to certain path
         save_img_name = sample_name + '_' + name_list[i] + '.png'
         save_img_path = os.path.join(sample_folder, save_img_name)
-        cv2.imwrite(save_img_path, img_copy)
+        cv2.imwrite(save_img_path, cv2.cvtColor(img_copy, cv2.COLOR_BGR2RGB))
 
 def psnr(pred, target, pixel_max_cnt = 255):
     mse = torch.mul(target - pred, target - pred)

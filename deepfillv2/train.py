@@ -16,6 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--cudnn_benchmark', type = bool, default = True, help = 'True for unchanged input data type')
     parser.add_argument('--checkpoint_interval', type = int, default = 1, help = 'interval between model checkpoints')
     parser.add_argument('--load_name', type = str, default = '', help = 'load model name')
+    parser.add_argument('--init_epoch', type = int, default = 0, help = 'epoch model to load')
     # Training parameters
     parser.add_argument('--epochs', type = int, default = 40, help = 'number of epochs of training')
     parser.add_argument('--batch_size', type = int, default = 1, help = 'size of the batches')
@@ -61,6 +62,10 @@ if __name__ == "__main__":
     else:
         os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     '''
+    
+    # Reload from existing epoch
+    if opt.init_epoch != 0:
+        opt.load_name = '/models/deepfillv2_LSGAN_epoch{}_batchsize{}.pth'.format(opt.init_epoch, opt.batch_size)
     
     # Enter main function
     import trainer

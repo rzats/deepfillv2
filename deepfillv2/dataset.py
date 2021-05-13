@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
+import random
 
 import utils
 
@@ -14,6 +15,15 @@ class InpaintDataset(Dataset):
         assert opt.mask_type in ALLMASKTYPES
         self.opt = opt
         self.imglist = utils.get_files(opt.baseroot)
+        self.masks = []
+        for i in range(1, 501):
+           path = './Mask_UVs/mask_{:03d}.jpg'.format(i)
+           mask = cv2.imread(path)[:,:,0]
+           mask = 255 - mask
+           mask = cv2.resize(mask, (self.opt.imgsize, self.opt.imgsize), interpolation = cv2.INTER_NEAREST)
+           mask = np.clip(mask, 0, 1)
+           mask = mask.reshape((1, ) + mask.shape).astype(np.float32)
+           self.masks.append(mask)
 
     def __len__(self):
         return len(self.imglist)
@@ -25,19 +35,21 @@ class InpaintDataset(Dataset):
         img = cv2.resize(img, (self.opt.imgsize, self.opt.imgsize))
 
         # mask
-        if self.opt.mask_type == 'single_bbox':
-            mask = self.bbox2mask(shape = self.opt.imgsize, margin = self.opt.margin, bbox_shape = self.opt.bbox_shape, times = 1)
-        if self.opt.mask_type == 'bbox':
-            mask = self.bbox2mask(shape = self.opt.imgsize, margin = self.opt.margin, bbox_shape = self.opt.bbox_shape, times = self.opt.mask_num)
-        if self.opt.mask_type == 'free_form':
-            mask = self.random_ff_mask(shape = self.opt.imgsize, max_angle = self.opt.max_angle, max_len = self.opt.max_len, max_width = self.opt.max_width, times = self.opt.mask_num)
+        #if self.opt.mask_type == 'single_bbox':
+        #    mask = self.bbox2mask(shape = self.opt.imgsize, margin = self.opt.margin, bbox_shape = self.opt.bbox_shape, times = 1)
+        #if self.opt.mask_type == 'bbox':
+        #    mask = self.bbox2mask(shape = self.opt.imgsize, margin = self.opt.margin, bbox_shape = self.opt.bbox_shape, times = self.opt.mask_num)
+        #if self.opt.mask_type == 'free_form':
+        #    mask = self.random_ff_mask(shape = self.opt.imgsize, max_angle = self.opt.max_angle, max_len = self.opt.max_len, max_width = self.opt.max_width, times = self.opt.mask_num)
+        mask = self.masks[random.randint(0, 499)]
+        #print(mask.shape)
         
         # the outputs are entire image and mask, respectively
         img = torch.from_numpy(img.astype(np.float32) / 255.0).permute(2, 0, 1).contiguous()
         mask = torch.from_numpy(mask.astype(np.float32)).contiguous()
         return img, mask
-
-    def random_ff_mask(self, shape, max_angle = 4, max_len = 40, max_width = 10, times = 15):
+        
+    def random_ff_mask(self, shape, max_angle = 4, max_len = 10, max_width = 5, times = 5):
         """Generate a random free form mask with configuration.
         Args:
             config: Config should have configuration including IMG_SHAPES,
@@ -57,7 +69,7 @@ class InpaintDataset(Dataset):
                 if i % 2 == 0:
                     angle = 2 * 3.1415926 - angle
                 length = 10 + np.random.randint(max_len)
-                brush_w = 5 + np.random.randint(max_width)
+                brush_w = 1 + np.random.randint(max_width)
                 end_x = (start_x + length * np.sin(angle)).astype(np.int32)
                 end_y = (start_y + length * np.cos(angle)).astype(np.int32)
                 cv2.line(mask, (start_y, start_x), (end_y, end_x), 1.0, brush_w)

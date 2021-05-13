@@ -93,7 +93,8 @@ def WGAN_trainer(opt):
     prev_time = time.time()
 
     # Training loop
-    for epoch in range(opt.epochs):
+    init_epoch = 0
+    for epoch in range(init_epoch, init_epoch + opt.epochs):
         for batch_idx, (img, mask) in enumerate(dataloader):
 
             # Load mask (shape: [B, 1, H, W]), masked_img (shape: [B, 3, H, W]), img (shape: [B, 3, H, W]) and put it to cuda
@@ -144,13 +145,13 @@ def WGAN_trainer(opt):
 
             # Determine approximate time left
             batches_done = epoch * len(dataloader) + batch_idx
-            batches_left = opt.epochs * len(dataloader) - batches_done
-            time_left = datetime.timedelta(seconds = batches_left * (time.time() - prev_time))
+            batches_left = (init_epoch + opt.epochs) * len(dataloader) - batches_done
+            time_left = datetime.timedelta(seconds = batches_left * (time.time() - prev_time)) 
             prev_time = time.time()
 
             # Print log
             print("\r[Epoch %d/%d] [Batch %d/%d] [first Mask L1 Loss: %.5f] [second Mask L1 Loss: %.5f]" %
-                ((epoch + 1), opt.epochs, batch_idx, len(dataloader), first_MaskL1Loss.item(), second_MaskL1Loss.item()))
+                ((epoch + 1), (init_epoch + opt.epochs), batch_idx, len(dataloader), first_MaskL1Loss.item(), second_MaskL1Loss.item()))
             print("\r[D Loss: %.5f] [G Loss: %.5f] [Perceptual Loss: %.5f] time_left: %s" %
                 (loss_D.item(), GAN_Loss.item(), second_PerceptualLoss.item(), time_left))
 
